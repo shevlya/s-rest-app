@@ -1,0 +1,44 @@
+package ru.ssau.s_rest_app.entity;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "users")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long idUser;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_user_status", nullable = false)
+    private UserStatus userStatus;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_avatar")
+    private Avatar avatar;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_role", nullable = false)
+    private Role role;
+
+    @Column(nullable = false, length = 256)
+    private String fio;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String passwordHash;
+
+    private LocalDate birthDate;
+
+    @Column(nullable = false)
+    private Boolean disabilityAccessible = false;
+}
