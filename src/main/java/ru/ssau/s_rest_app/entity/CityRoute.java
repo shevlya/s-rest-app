@@ -24,7 +24,7 @@ public class CityRoute {
     @JoinColumn(name = "id_admin")
     private User admin;
 
-    @Column(length = 256, nullable = false)
+    @Column(nullable = false)
     private String cityRouteName;
 
     @Column(columnDefinition = "TEXT")

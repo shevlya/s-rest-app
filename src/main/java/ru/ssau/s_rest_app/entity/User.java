@@ -31,8 +31,11 @@ public class User {
     @JoinColumn(name = "id_role", nullable = false)
     private Role role;
 
-    @Column(nullable = false, length = 256)
+    @Column(nullable = false)
     private String fio;
+
+    @Column(nullable = false, unique = true)
+    private String email;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String passwordHash;
@@ -40,5 +43,5 @@ public class User {
     private LocalDate birthDate;
 
     @Column(nullable = false)
-    private Boolean disabilityAccessible = false;
+    private Boolean hasDisability = false;
 }
