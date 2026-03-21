@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import ru.ssau.s_rest_app.entity.OrganizerRequest;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface OrganizerRequestRepository extends JpaRepository<OrganizerRequest, Long> {
@@ -12,4 +13,10 @@ public interface OrganizerRequestRepository extends JpaRepository<OrganizerReque
     @Query("SELECT r FROM OrganizerRequest r WHERE r.user.idUser = :userId " +
             "ORDER BY r.submittedAt DESC LIMIT 1")
     Optional<OrganizerRequest> findLatestByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT r FROM OrganizerRequest r WHERE r.requestStatus.requestStatusName = :status ORDER BY r.submittedAt DESC")
+    List<OrganizerRequest> findByStatusName(@Param("status") String status);
+
+    @Query("SELECT COUNT(r) FROM OrganizerRequest r WHERE r.requestStatus.requestStatusName ='PENDING'")
+    long countPendingRequests();
 }

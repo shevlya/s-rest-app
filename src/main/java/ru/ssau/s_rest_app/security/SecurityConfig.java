@@ -33,7 +33,21 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/categories","/api/formats", "/api/events", "/api/events/upcoming", "/api/events/*").permitAll()
+                        // Публичные эндпоинты
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/categories",
+                                "/api/formats",
+                                "/api/events",
+                                "/api/events/upcoming",
+                                "/api/events/**"          // ← ** вместо * — покрывает /events/{id} и /events/{id}/register
+                        ).permitAll()
+
+                        .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN")
+                        // Только организатор и администратор
+                        .requestMatchers("/api/organizer/**").hasAnyAuthority("ROLE_ORGANIZER", "ROLE_ADMIN")
+
+                        // Всё остальное — любой авторизованный
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(((request, response, authException) -> {
