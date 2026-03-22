@@ -15,6 +15,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AdminService {
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserStatusRepository userStatusRepository;
@@ -27,8 +28,7 @@ public class AdminService {
     private final EventParticipantRepository participantRepository;
     private final EmailService emailService;
 
-    // ── Статистика дашборда ───────────────────────────────────
-
+    //Статистика дашборда
     @Transactional(readOnly = true)
     public AdminStatsDto getStats() {
         long users = userRepository.countByRoleName("USER");
@@ -39,8 +39,7 @@ public class AdminService {
         return new AdminStatsDto(users, organizers, events, pending, requests);
     }
 
-    // ── Управление пользователями ─────────────────────────────
-
+    //Управление пользователями
     @Transactional(readOnly = true)
     public List<AdminUserDto> getUsers(String search, String role, String status) {
         return userRepository.findForAdmin(search, role, status)
@@ -76,8 +75,7 @@ public class AdminService {
         return toAdminUserDto(user);
     }
 
-    // ── Заявки на организатора ────────────────────────────────
-
+    //Заявки на организатора
     @Transactional(readOnly = true)
     public List<OrganizerRequestAdminDto> getPendingOrganizerRequests() {
         return organizerRequestRepository.findByStatusName("PENDING")
@@ -108,7 +106,6 @@ public class AdminService {
         request.setReviewedAt(LocalDateTime.now());
         organizerRequestRepository.save(request);
 
-        // Меняем роль пользователя
         User user = request.getUser();
         user.setRole(organizerRole);
         userRepository.save(user);
@@ -118,11 +115,9 @@ public class AdminService {
 
     @Transactional
     public void rejectOrganizerRequest(Long requestId, AdminModerationRequest req) throws AppException {
-        OrganizerRequest request = organizerRequestRepository.findById(requestId)
-                .orElseThrow(() -> new AppException("Заявка не найдена", HttpStatus.NOT_FOUND));
+        OrganizerRequest request = organizerRequestRepository.findById(requestId).orElseThrow(() -> new AppException("Заявка не найдена", HttpStatus.NOT_FOUND));
 
-        RequestStatus rejected = requestStatusRepository.findByRequestStatusName("REJECTED")
-                .orElseThrow(() -> new AppException("Статус не найден", HttpStatus.INTERNAL_SERVER_ERROR));
+        RequestStatus rejected = requestStatusRepository.findByRequestStatusName("REJECTED").orElseThrow(() -> new AppException("Статус не найден", HttpStatus.INTERNAL_SERVER_ERROR));
 
         request.setRequestStatus(rejected);
         request.setReviewComment(req.getComment());
@@ -133,15 +128,14 @@ public class AdminService {
         emailService.sendOrganizerRequestRejected(user.getEmail(), user.getFio(), req.getComment());
     }
 
-    // ── Модерация мероприятий ─────────────────────────────────
-
+    //Модерация мероприятий
     @Transactional(readOnly = true)
     public List<AdminEventDto> getEventsByTab(String tab) {
         List<Event> events = switch (tab) {
             case "APPROVED" -> eventRepository.findApprovedEvents();
             case "REJECTED" -> eventRepository.findRejectedEvents();
             case "ARCHIVE" -> eventRepository.findArchiveEvents();
-            default -> eventRepository.findPendingEvents(); // PENDING
+            default -> eventRepository.findPendingEvents();
         };
         return events.stream().map(this::toAdminEventDto).toList();
     }
@@ -149,11 +143,9 @@ public class AdminService {
     @Transactional
     public void approveEvent(Long eventId, AdminModerationRequest req) throws AppException {
         Event event = getEventOrThrow(eventId);
-
         event.setVerified(true);
         event.setVerificationComment(req.getComment());
         eventRepository.save(event);
-
         emailService.sendEventApproved(
                 event.getOrganizer().getEmail(),
                 event.getOrganizer().getFio(),
@@ -165,11 +157,9 @@ public class AdminService {
     @Transactional
     public void rejectEvent(Long eventId, AdminModerationRequest req) throws AppException {
         Event event = getEventOrThrow(eventId);
-
         event.setVerified(false);
         event.setVerificationComment(req.getComment());
         eventRepository.save(event);
-
         emailService.sendEventRejected(
                 event.getOrganizer().getEmail(),
                 event.getOrganizer().getFio(),
@@ -182,10 +172,8 @@ public class AdminService {
     public AdminEventDto editEvent(Long eventId, AdminEditEventRequest req) throws AppException {
         Event event = getEventOrThrow(eventId);
 
-        EventCategory category = categoryRepository.findById(req.getCategoryId())
-                .orElseThrow(() -> new AppException("Категория не найдена", HttpStatus.NOT_FOUND));
-        EventFormat format = formatRepository.findById(req.getFormatId())
-                .orElseThrow(() -> new AppException("Формат не найден", HttpStatus.NOT_FOUND));
+        EventCategory category = categoryRepository.findById(req.getCategoryId()).orElseThrow(() -> new AppException("Категория не найдена", HttpStatus.NOT_FOUND));
+        EventFormat format = formatRepository.findById(req.getFormatId()).orElseThrow(() -> new AppException("Формат не найден", HttpStatus.NOT_FOUND));
 
         event.setEventName(req.getEventName());
         event.setEventDescription(req.getEventDescription());
@@ -197,7 +185,7 @@ public class AdminService {
         event.setPrice(req.getPrice());
         event.setMaxParticipants(req.getMaxParticipants());
         event.setImageUrl(req.getImageUrl());
-        event.setVerified(true); // публикуем сразу
+        event.setVerified(true);
         event.setVerificationComment("Опубликовано администратором после редактирования");
         Event saved = eventRepository.save(event);
 
@@ -212,13 +200,35 @@ public class AdminService {
     @Transactional
     public void deleteEvent(Long eventId) throws AppException {
         Event event = getEventOrThrow(eventId);
-        // Удаляем сначала участников
         participantRepository.deleteByEventId(eventId);
         eventRepository.delete(event);
     }
 
-    // ── Справочники: Категории ────────────────────────────────
+    @Transactional
+    public void changeEventStatus(Long eventId, ChangeEventStatusRequest req) throws AppException {
+        Event event = getEventOrThrow(eventId);
+        EventStatus newStatus = eventStatusRepository.findByEventStatusName(req.getStatusName())
+                .orElseThrow(() -> new AppException("Статус «" + req.getStatusName() + "» не найден", HttpStatus.NOT_FOUND));
+        event.setEventStatus(newStatus);
+        if ("PLANNED".equals(req.getStatusName())) {
+            event.setVerified(false);
+            event.setVerificationComment(null);
+        }
+        eventRepository.save(event);
+    }
 
+    @Transactional
+    public void restoreEvent(Long eventId) throws AppException {
+        Event event = getEventOrThrow(eventId);
+        EventStatus planned = eventStatusRepository.findByEventStatusName("PLANNED")
+                .orElseThrow(() -> new AppException("Статус PLANNED не найден", HttpStatus.INTERNAL_SERVER_ERROR));
+        event.setEventStatus(planned);
+        event.setVerified(false);
+        event.setVerificationComment(null);
+        eventRepository.save(event);
+    }
+
+    //Справочники: Категории
     @Transactional(readOnly = true)
     public List<EventCategoryDto> getAllCategories() {
         return categoryRepository.findAll().stream()
@@ -240,8 +250,7 @@ public class AdminService {
 
     @Transactional
     public EventCategoryDto updateCategory(Long id, DirectoryItemRequest req) throws AppException {
-        EventCategory c = categoryRepository.findById(id)
-                .orElseThrow(() -> new AppException("Категория не найдена", HttpStatus.NOT_FOUND));
+        EventCategory c = categoryRepository.findById(id).orElseThrow(() -> new AppException("Категория не найдена", HttpStatus.NOT_FOUND));
         c.setEventCategoryName(req.getName());
         c.setEventCategoryDescription(req.getDescription());
         c.setColorCode(req.getColorCode());
@@ -257,8 +266,7 @@ public class AdminService {
         categoryRepository.deleteById(id);
     }
 
-    // ── Справочники: Форматы ──────────────────────────────────
-
+    //Справочники: Форматы
     @Transactional(readOnly = true)
     public List<EventFormat> getAllFormats() {
         return formatRepository.findAll();
@@ -274,8 +282,7 @@ public class AdminService {
 
     @Transactional
     public EventFormat updateFormat(Long id, DirectoryItemRequest req) throws AppException {
-        EventFormat f = formatRepository.findById(id)
-                .orElseThrow(() -> new AppException("Формат не найден", HttpStatus.NOT_FOUND));
+        EventFormat f = formatRepository.findById(id).orElseThrow(() -> new AppException("Формат не найден", HttpStatus.NOT_FOUND));
         f.setEventFormatName(req.getName());
         f.setEventFormatDescription(req.getDescription());
         return formatRepository.save(f);
@@ -288,8 +295,7 @@ public class AdminService {
         formatRepository.deleteById(id);
     }
 
-    // ── Справочники: Статусы мероприятий ─────────────────────
-
+    //Справочники: Статусы мероприятий
     @Transactional(readOnly = true)
     public List<EventStatus> getAllEventStatuses() {
         return eventStatusRepository.findAll();
@@ -305,8 +311,7 @@ public class AdminService {
 
     @Transactional
     public EventStatus updateEventStatus(Long id, DirectoryItemRequest req) throws AppException {
-        EventStatus s = eventStatusRepository.findById(id)
-                .orElseThrow(() -> new AppException("Статус не найден", HttpStatus.NOT_FOUND));
+        EventStatus s = eventStatusRepository.findById(id).orElseThrow(() -> new AppException("Статус не найден", HttpStatus.NOT_FOUND));
         s.setEventStatusName(req.getName());
         s.setEventStatusDescription(req.getDescription());
         return eventStatusRepository.save(s);
@@ -319,8 +324,7 @@ public class AdminService {
         eventStatusRepository.deleteById(id);
     }
 
-    // ── Справочники: Статусы пользователей ───────────────────
-
+    //Справочники: Статусы пользователей
     @Transactional(readOnly = true)
     public List<UserStatus> getAllUserStatuses() {
         return userStatusRepository.findAll();
@@ -340,16 +344,13 @@ public class AdminService {
         userStatusRepository.deleteById(id);
     }
 
-    // ── Вспомогательные ──────────────────────────────────────
-
+    //Вспомогательные
     private User getUserOrThrow(Long id) throws AppException {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new AppException("Пользователь не найден", HttpStatus.NOT_FOUND));
+        return userRepository.findById(id).orElseThrow(() -> new AppException("Пользователь не найден", HttpStatus.NOT_FOUND));
     }
 
     private Event getEventOrThrow(Long id) throws AppException {
-        return eventRepository.findById(id)
-                .orElseThrow(() -> new AppException("Мероприятие не найдено", HttpStatus.NOT_FOUND));
+        return eventRepository.findById(id).orElseThrow(() -> new AppException("Мероприятие не найдено", HttpStatus.NOT_FOUND));
     }
 
     private AdminUserDto toAdminUserDto(User u) {
@@ -362,11 +363,9 @@ public class AdminService {
         Long count = participantRepository.countActiveParticipants(e.getIdEvent());
         boolean isOnline = (e.getPlace() instanceof OnlinePlace);
         String placeName = e.getPlace() != null ? e.getPlace().getPlaceName() : null;
-        String address = !isOnline && e.getPlace() instanceof PhysicalPlace
-                ? ((PhysicalPlace) e.getPlace()).getAddress() : null;
+        String address = !isOnline && e.getPlace() instanceof PhysicalPlace ? ((PhysicalPlace) e.getPlace()).getAddress() : null;
         String meetingUrl = isOnline ? ((OnlinePlace) e.getPlace()).getMeetingUrl() : null;
-        Boolean accessible = !isOnline && e.getPlace() instanceof PhysicalPlace
-                ? ((PhysicalPlace) e.getPlace()).getDisabilityAccessible() : null;
+        Boolean accessible = !isOnline && e.getPlace() instanceof PhysicalPlace ? ((PhysicalPlace) e.getPlace()).getDisabilityAccessible() : null;
 
         String tab = computeTab(e);
 
@@ -389,12 +388,9 @@ public class AdminService {
         );
     }
 
-    // Вычисляем вкладку для фронта
     private String computeTab(Event e) {
-        String status = e.getEventStatus() != null
-                ? e.getEventStatus().getEventStatusName() : "";
-        if ("CANCELLED".equals(status) || "COMPLETED".equals(status)
-                || e.getEventDate().isBefore(LocalDateTime.now())) {
+        String status = e.getEventStatus() != null ? e.getEventStatus().getEventStatusName() : "";
+        if ("CANCELLED".equals(status) || "COMPLETED".equals(status) || e.getEventDate().isBefore(LocalDateTime.now())) {
             return "ARCHIVE";
         }
         if (e.getVerified()) return "APPROVED";
@@ -402,25 +398,5 @@ public class AdminService {
             return "REJECTED";
         }
         return "PENDING";
-    }
-
-    @Transactional
-    public void changeEventStatus(Long eventId, ChangeEventStatusRequest req) throws AppException {
-        Event event = getEventOrThrow(eventId);
-
-        EventStatus newStatus = eventStatusRepository
-                .findByEventStatusName(req.getStatusName())
-                .orElseThrow(() -> new AppException(
-                        "Статус «" + req.getStatusName() + "» не найден", HttpStatus.NOT_FOUND));
-
-        event.setEventStatus(newStatus);
-
-        // Если возобновляем отменённое мероприятие — сбрасываем верификацию,
-        // чтобы оно снова прошло модерацию
-        if ("PLANNED".equals(req.getStatusName())) {
-            event.setVerified(false);
-            event.setVerificationComment(null);
-        }
-        eventRepository.save(event);
     }
 }

@@ -29,7 +29,7 @@ public class AuthService {
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
 
-    // ── Регистрация ───────────────────────────────────────────────
+    //Регистрация
 
     @Transactional
     public AuthResponse register(RegisterRequest request) throws UserAlreadyExistsException {
@@ -86,7 +86,7 @@ public class AuthService {
         );
     }
 
-    // ── Вход ─────────────────────────────────────────────────────
+    //Вход
 
     public AuthResponse login(LoginRequest request) {
         // Spring Security проверяет email + пароль

@@ -2,7 +2,7 @@ package ru.ssau.s_rest_app.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.ssau.s_rest_app.dto.*;
 import ru.ssau.s_rest_app.entity.EventFormat;
@@ -17,186 +17,187 @@ import java.util.List;
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class AdminController {
+
     private final AdminService adminService;
 
-    // ── Дашборд ──────────────────────────────────────────────
+    //Дашборд
     @GetMapping("/stats")
-    public ResponseEntity<AdminStatsDto> getStats() {
-        return ResponseEntity.ok(adminService.getStats());
+    public AdminStatsDto getStats() {
+        return adminService.getStats();
     }
 
-    // ── Пользователи ─────────────────────────────────────────
+    //Пользователи
     @GetMapping("/users")
-    public ResponseEntity<List<AdminUserDto>> getUsers(
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) String role,
-            @RequestParam(required = false) String status) {
-        return ResponseEntity.ok(adminService.getUsers(search, role, status));
+    public List<AdminUserDto> getUsers(@RequestParam(required = false) String search,
+                                       @RequestParam(required = false) String role,
+                                       @RequestParam(required = false) String status) {
+        return adminService.getUsers(search, role, status);
     }
 
     @PatchMapping("/users/{id}/role")
-    public ResponseEntity<AdminUserDto> updateRole(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateUserRoleRequest req) throws AppException {
-        return ResponseEntity.ok(adminService.updateUserRole(id, req));
+    public AdminUserDto updateRole(@PathVariable Long id, @Valid @RequestBody UpdateUserRoleRequest req) throws AppException {
+        return adminService.updateUserRole(id, req);
     }
 
     @PatchMapping("/users/{id}/status")
-    public ResponseEntity<AdminUserDto> updateStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateUserStatusRequest req) throws AppException {
-        return ResponseEntity.ok(adminService.updateUserStatus(id, req));
+    public AdminUserDto updateStatus(@PathVariable Long id, @Valid @RequestBody UpdateUserStatusRequest req) throws AppException {
+        return adminService.updateUserStatus(id, req);
     }
 
-    // ── Заявки организаторов ──────────────────────────────────
+    //Заявки организаторов
     @GetMapping("/organizer-requests")
-    public ResponseEntity<List<OrganizerRequestAdminDto>> getOrganizerRequests() {
-        return ResponseEntity.ok(adminService.getPendingOrganizerRequests());
+    public List<OrganizerRequestAdminDto> getOrganizerRequests() {
+        return adminService.getPendingOrganizerRequests();
     }
 
     @PostMapping("/organizer-requests/{id}/approve")
-    public ResponseEntity<Void> approveRequest(@PathVariable Long id) throws AppException {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void approveRequest(@PathVariable Long id) throws AppException {
         adminService.approveOrganizerRequest(id);
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/organizer-requests/{id}/reject")
-    public ResponseEntity<Void> rejectRequest(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void rejectRequest(
             @PathVariable Long id,
             @RequestBody AdminModerationRequest req) throws AppException {
         adminService.rejectOrganizerRequest(id, req);
-        return ResponseEntity.noContent().build();
     }
 
-    // ── Модерация мероприятий ─────────────────────────────────
+    //Модерация мероприятий
     @GetMapping("/events")
-    public ResponseEntity<List<AdminEventDto>> getEvents(
+    public List<AdminEventDto> getEvents(
             @RequestParam(defaultValue = "PENDING") String tab) {
-        return ResponseEntity.ok(adminService.getEventsByTab(tab));
+        return adminService.getEventsByTab(tab);
     }
 
     @PostMapping("/events/{id}/approve")
-    public ResponseEntity<Void> approveEvent(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void approveEvent(
             @PathVariable Long id,
             @RequestBody AdminModerationRequest req) throws AppException {
         adminService.approveEvent(id, req);
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/events/{id}/reject")
-    public ResponseEntity<Void> rejectEvent(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void rejectEvent(
             @PathVariable Long id,
             @RequestBody AdminModerationRequest req) throws AppException {
         adminService.rejectEvent(id, req);
-        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/events/{id}")
-    public ResponseEntity<AdminEventDto> editEvent(
+    public AdminEventDto editEvent(
             @PathVariable Long id,
             @Valid @RequestBody AdminEditEventRequest req) throws AppException {
-        return ResponseEntity.ok(adminService.editEvent(id, req));
+        return adminService.editEvent(id, req);
     }
 
     @DeleteMapping("/events/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable Long id) throws AppException {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteEvent(@PathVariable Long id) throws AppException {
         adminService.deleteEvent(id);
-        return ResponseEntity.noContent().build();
     }
 
-    // ── Справочники ───────────────────────────────────────────
+    @PatchMapping("/events/{id}/status")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changeEventStatus(
+            @PathVariable Long id,
+            @RequestBody ChangeEventStatusRequest req) throws AppException {
+        adminService.changeEventStatus(id, req);
+    }
+
+    @PostMapping("/events/{id}/restore")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void restoreEvent(@PathVariable Long id) throws AppException {
+        adminService.restoreEvent(id);
+    }
+
+    //Справочники: Категории
     @GetMapping("/directories/categories")
-    public ResponseEntity<List<EventCategoryDto>> getCategories() {
-        return ResponseEntity.ok(adminService.getAllCategories());
+    public List<EventCategoryDto> getCategories() {
+        return adminService.getAllCategories();
     }
 
     @PostMapping("/directories/categories")
-    public ResponseEntity<EventCategoryDto> createCategory(
-            @Valid @RequestBody DirectoryItemRequest req) {
-        return ResponseEntity.ok(adminService.createCategory(req));
+    @ResponseStatus(HttpStatus.CREATED)
+    public EventCategoryDto createCategory(@Valid @RequestBody DirectoryItemRequest req) {
+        return adminService.createCategory(req);
     }
 
     @PutMapping("/directories/categories/{id}")
-    public ResponseEntity<EventCategoryDto> updateCategory(
-            @PathVariable Long id,
-            @Valid @RequestBody DirectoryItemRequest req) throws AppException {
-        return ResponseEntity.ok(adminService.updateCategory(id, req));
+    public EventCategoryDto updateCategory(@PathVariable Long id, @Valid @RequestBody DirectoryItemRequest req) throws AppException {
+        return adminService.updateCategory(id, req);
     }
 
     @DeleteMapping("/directories/categories/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) throws AppException {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCategory(@PathVariable Long id) throws AppException {
         adminService.deleteCategory(id);
-        return ResponseEntity.noContent().build();
     }
 
+    //Справочники: Форматы
     @GetMapping("/directories/formats")
-    public ResponseEntity<List<EventFormat>> getFormats() {
-        return ResponseEntity.ok(adminService.getAllFormats());
+    public List<EventFormat> getFormats() {
+        return adminService.getAllFormats();
     }
 
     @PostMapping("/directories/formats")
-    public ResponseEntity<EventFormat> createFormat(@Valid @RequestBody DirectoryItemRequest req) {
-        return ResponseEntity.ok(adminService.createFormat(req));
+    @ResponseStatus(HttpStatus.CREATED)
+    public EventFormat createFormat(@Valid @RequestBody DirectoryItemRequest req) {
+        return adminService.createFormat(req);
     }
 
     @PutMapping("/directories/formats/{id}")
-    public ResponseEntity<EventFormat> updateFormat(
-            @PathVariable Long id,
-            @Valid @RequestBody DirectoryItemRequest req) throws AppException {
-        return ResponseEntity.ok(adminService.updateFormat(id, req));
+    public EventFormat updateFormat(@PathVariable Long id, @Valid @RequestBody DirectoryItemRequest req) throws AppException {
+        return adminService.updateFormat(id, req);
     }
 
     @DeleteMapping("/directories/formats/{id}")
-    public ResponseEntity<Void> deleteFormat(@PathVariable Long id) throws AppException {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteFormat(@PathVariable Long id) throws AppException {
         adminService.deleteFormat(id);
-        return ResponseEntity.noContent().build();
     }
 
+    //Справочники: Статусы мероприятий
     @GetMapping("/directories/event-statuses")
-    public ResponseEntity<List<EventStatus>> getEventStatuses() {
-        return ResponseEntity.ok(adminService.getAllEventStatuses());
+    public List<EventStatus> getEventStatuses() {
+        return adminService.getAllEventStatuses();
     }
 
     @PostMapping("/directories/event-statuses")
-    public ResponseEntity<EventStatus> createEventStatus(
-            @Valid @RequestBody DirectoryItemRequest req) {
-        return ResponseEntity.ok(adminService.createEventStatus(req));
+    @ResponseStatus(HttpStatus.CREATED)
+    public EventStatus createEventStatus(@Valid @RequestBody DirectoryItemRequest req) {
+        return adminService.createEventStatus(req);
     }
 
     @PutMapping("/directories/event-statuses/{id}")
-    public ResponseEntity<EventStatus> updateEventStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody DirectoryItemRequest req) throws AppException {
-        return ResponseEntity.ok(adminService.updateEventStatus(id, req));
+    public EventStatus updateEventStatus(@PathVariable Long id, @Valid @RequestBody DirectoryItemRequest req) throws AppException {
+        return adminService.updateEventStatus(id, req);
     }
 
     @DeleteMapping("/directories/event-statuses/{id}")
-    public ResponseEntity<Void> deleteEventStatus(@PathVariable Long id) throws AppException {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteEventStatus(@PathVariable Long id) throws AppException {
         adminService.deleteEventStatus(id);
-        return ResponseEntity.noContent().build();
     }
 
+    //Справочники: Статусы пользователей
     @GetMapping("/directories/user-statuses")
-    public ResponseEntity<List<UserStatus>> getUserStatuses() {
-        return ResponseEntity.ok(adminService.getAllUserStatuses());
+    public List<UserStatus> getUserStatuses() {
+        return adminService.getAllUserStatuses();
     }
 
     @PostMapping("/directories/user-statuses")
-    public ResponseEntity<UserStatus> createUserStatus(
-            @Valid @RequestBody DirectoryItemRequest req) {
-        return ResponseEntity.ok(adminService.createUserStatus(req));
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserStatus createUserStatus(@Valid @RequestBody DirectoryItemRequest req) {
+        return adminService.createUserStatus(req);
     }
 
     @DeleteMapping("/directories/user-statuses/{id}")
-    public ResponseEntity<Void> deleteUserStatus(@PathVariable Long id) throws AppException {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteUserStatus(@PathVariable Long id) throws AppException {
         adminService.deleteUserStatus(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    // Добавить после @DeleteMapping("/events/{id}"):
-    @PatchMapping("/events/{id}/status")
-    public ResponseEntity<Void> changeEventStatus(@PathVariable Long id, @RequestBody ChangeEventStatusRequest req) throws AppException {
-        adminService.changeEventStatus(id, req);
-        return ResponseEntity.noContent().build();
     }
 }

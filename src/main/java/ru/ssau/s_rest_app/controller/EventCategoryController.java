@@ -13,9 +13,9 @@ import java.util.List;
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
 public class EventCategoryController {
+
     private final EventCategoryRepository categoryRepository;
 
-    /** GET /api/categories */
     @GetMapping
     public List<EventCategoryDto> getAll() {
         return categoryRepository.findAll().stream()

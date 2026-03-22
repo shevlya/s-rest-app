@@ -19,45 +19,49 @@ import ru.ssau.s_rest_app.repository.EventRepository;
 import ru.ssau.s_rest_app.repository.ParticipationStatusRepository;
 import ru.ssau.s_rest_app.repository.UserRepository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class EventService {
+
     private final EventRepository eventRepository;
     private final EventParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final ParticipationStatusRepository participationStatusRepository;
 
-    // ── Получить ближайшие мероприятия (для главной) ──────────
-
+    //Получить ближайшие мероприятия (для главной)
     @Transactional(readOnly = true)
     public EventPageResponse getUpcoming(int limit) {
-        Page<Event> page = eventRepository.findPublicEvents(LocalDateTime.now(),
-                null, null, null, null,
+        // Исправлено: передаём начало текущего дня, чтобы показывать
+        // все мероприятия сегодняшнего дня вне зависимости от времени
+        LocalDateTime today = LocalDate.now().atStartOfDay();
+        Page<Event> page = eventRepository.findPublicEvents(
+                today, null, null, null, null,
                 PageRequest.of(0, limit, Sort.by("eventDate").ascending())
         );
         return mapToPageResponse(page, 0, limit);
     }
 
-    // ── Получить список с фильтрами (для страницы мероприятий) ─
+    //Получить список с фильтрами (для страницы мероприятий)
     @Transactional(readOnly = true)
     public EventPageResponse getFiltered(
             Long categoryId, Long formatId,
             LocalDateTime dateFrom, LocalDateTime dateTo,
             int page, int size) {
 
+        // Исправлено: без фильтра по дате показываем всё от начала дня
+        LocalDateTime today = LocalDate.now().atStartOfDay();
         Page<Event> result = eventRepository.findPublicEvents(
-                LocalDateTime.now(),
-                categoryId, formatId, dateFrom, dateTo,
+                today, categoryId, formatId, dateFrom, dateTo,
                 PageRequest.of(page, size, Sort.by("eventDate").ascending())
         );
         return mapToPageResponse(result, page, size);
     }
 
-    // ── Детальная страница мероприятия ────────────────────────
-
+    //Детальная страница мероприятия
     @Transactional(readOnly = true)
     public EventDetailDto getById(Long eventId) throws AppException {
         Event event = eventRepository.findById(eventId)
@@ -68,9 +72,8 @@ public class EventService {
         boolean registrationOpen = event.getMaxParticipants() == null
                 || count < event.getMaxParticipants();
 
-        // Статус записи текущего пользователя (если авторизован)
-        Boolean   isRegistered        = null;
-        String    participationStatus = null;
+        Boolean isRegistered = null;
+        String participationStatus = null;
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated()
                 && !"anonymousUser".equals(auth.getPrincipal())) {
@@ -78,21 +81,20 @@ public class EventService {
             if (user.isPresent()) {
                 Optional<EventParticipant> ep = participantRepository
                         .findByUserIdAndEventId(user.get().getIdUser(), eventId);
-                isRegistered        = ep.isPresent();
+                isRegistered = ep.isPresent();
                 participationStatus = ep.map(p ->
                         p.getParticipationStatus().getParticipationStatusName()
                 ).orElse(null);
             }
         }
 
-        // Площадка
         Place place = event.getPlace();
         boolean isOnline = (place instanceof OnlinePlace);
-        String  placeName   = place != null ? place.getPlaceName()   : null;
-        String  meetingUrl  = isOnline ? ((OnlinePlace) place).getMeetingUrl() : null;
-        String  address     = !isOnline && place instanceof PhysicalPlace
+        String placeName = place != null ? place.getPlaceName() : null;
+        String meetingUrl = isOnline ? ((OnlinePlace) place).getMeetingUrl() : null;
+        String address = !isOnline && place instanceof PhysicalPlace
                 ? ((PhysicalPlace) place).getAddress() : null;
-        Boolean accessible  = !isOnline && place instanceof PhysicalPlace
+        Boolean accessible = !isOnline && place instanceof PhysicalPlace
                 ? ((PhysicalPlace) place).getDisabilityAccessible() : null;
 
         return new EventDetailDto(
@@ -120,8 +122,7 @@ public class EventService {
         );
     }
 
-    // ── Записаться на мероприятие ─────────────────────────────
-
+    //Записаться на мероприятие
     @Transactional
     public void register(Long eventId, String userEmail) throws AppException {
         Event event = eventRepository.findById(eventId)
@@ -132,7 +133,6 @@ public class EventService {
                 .orElseThrow(() -> new AppException(
                         "Пользователь не найден", HttpStatus.NOT_FOUND));
 
-        // Проверяем что ещё не записан
         if (participantRepository.findByUserIdAndEventId(
                 user.getIdUser(), eventId).isPresent()) {
             throw new AppException("Вы уже записаны на это мероприятие",
@@ -141,7 +141,6 @@ public class EventService {
 
         Long count = participantRepository.countActiveParticipants(eventId);
 
-        // Определяем статус записи
         String statusName = (event.getMaxParticipants() != null
                 && count >= event.getMaxParticipants())
                 ? "WAITLISTED" : "REGISTERED";
@@ -159,8 +158,7 @@ public class EventService {
         participantRepository.save(ep);
     }
 
-    // ── Отменить запись ───────────────────────────────────────
-
+    //Отменить запись
     @Transactional
     public void unregister(Long eventId, String userEmail) throws AppException {
         User user = userRepository.findByEmail(userEmail)
@@ -175,8 +173,7 @@ public class EventService {
         participantRepository.delete(ep);
     }
 
-    // ── Маппинг ───────────────────────────────────────────────
-
+    //Маппинг
     private EventPageResponse mapToPageResponse(Page<Event> page, int pageNum, int size) {
         var cards = page.getContent().stream()
                 .map(this::toCard)

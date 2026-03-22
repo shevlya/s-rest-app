@@ -19,26 +19,23 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class OrganizerEventService {
-    private final UserRepository             userRepository;
-    private final EventRepository            eventRepository;
-    private final EventCategoryRepository    categoryRepository;
-    private final EventFormatRepository      formatRepository;
-    private final EventStatusRepository      eventStatusRepository;
-    private final PlaceRepository            placeRepository;
+
+    private final UserRepository userRepository;
+    private final EventRepository eventRepository;
+    private final EventCategoryRepository categoryRepository;
+    private final EventFormatRepository formatRepository;
+    private final EventStatusRepository eventStatusRepository;
+    private final PlaceRepository placeRepository;
     private final EventParticipantRepository participantRepository;
 
-    // ── Получить текущего организатора ───────────────────────
-
+    //Получить текущего организатора
     private User getCurrentOrganizer() throws AppException {
         String email = SecurityContextHolder.getContext()
                 .getAuthentication().getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(
-                        "Пользователь не найден", HttpStatus.NOT_FOUND));
+        return userRepository.findByEmail(email).orElseThrow(() -> new AppException("Пользователь не найден", HttpStatus.NOT_FOUND));
     }
 
-    // ── Список мероприятий организатора ──────────────────────
-
+    //Список мероприятий организатора
     @Transactional(readOnly = true)
     public List<OrganizerEventDto> getMyEvents() throws AppException {
         User organizer = getCurrentOrganizer();
@@ -48,35 +45,27 @@ public class OrganizerEventService {
                 .toList();
     }
 
-    // ── Создать мероприятие ───────────────────────────────────
+    //Получить одно мероприятие организатора (для формы редактирования)
+    @Transactional(readOnly = true)
+    public OrganizerEventDto getEventById(Long eventId) throws AppException {
+        Event event = getOwnEvent(eventId);
+        return toOrganizerDto(event);
+    }
 
+    //Создать мероприятие
     @Transactional
     public OrganizerEventDto createEvent(CreateEventRequest req) throws AppException {
         User organizer = getCurrentOrganizer();
 
-        EventCategory category = categoryRepository.findById(req.getCategoryId())
-                .orElseThrow(() -> new AppException(
-                        "Категория не найдена", HttpStatus.NOT_FOUND));
+        EventCategory category = categoryRepository.findById(req.getCategoryId()).orElseThrow(() -> new AppException("Категория не найдена", HttpStatus.NOT_FOUND));
 
-        EventFormat format = formatRepository.findById(req.getFormatId())
-                .orElseThrow(() -> new AppException(
-                        "Формат не найден", HttpStatus.NOT_FOUND));
+        EventFormat format = formatRepository.findById(req.getFormatId()).orElseThrow(() -> new AppException("Формат не найден", HttpStatus.NOT_FOUND));
 
-        // ⚠ В БД нет статуса ACTIVE — используем PLANNED
-        EventStatus status = eventStatusRepository
-                .findByEventStatusName("PLANNED")
-                .orElseThrow(() -> new AppException(
-                        "Статус PLANNED не найден в БД", HttpStatus.INTERNAL_SERVER_ERROR));
+        EventStatus status = eventStatusRepository.findByEventStatusName("PLANNED")
+                .orElseThrow(() -> new AppException("Статус PLANNED не найден в БД", HttpStatus.INTERNAL_SERVER_ERROR));
 
-        // Создаём площадку
         Place place = buildPlace(req);
 
-        // Собираем дату+время для eventDate, startTime, endTime
-        // Фронт присылает дату и время отдельно:
-        // eventDate = "2025-06-15" (строка date)
-        // startTime = "14:00"      (строка time)
-        // endTime   = "16:00"
-        // Уже собраны в LocalDateTime через @JsonFormat на фронте
         Event event = new Event();
         event.setOrganizer(organizer);
         event.setAdmin(null);
@@ -94,20 +83,16 @@ public class OrganizerEventService {
         event.setPlace(place);
         event.setVerified(false);
 
-        Event saved = eventRepository.save(event);
-        return toOrganizerDto(saved);
+        return toOrganizerDto(eventRepository.save(event));
     }
 
-    // ── Редактировать мероприятие ─────────────────────────────
-
+    //Редактировать мероприятие
     @Transactional
-    public OrganizerEventDto updateEvent(Long eventId, UpdateEventRequest req)
-            throws AppException {
+    public OrganizerEventDto updateEvent(Long eventId, UpdateEventRequest req) throws AppException {
         Event event = getOwnEvent(eventId);
 
         if (event.getEventDate().isBefore(LocalDateTime.now())) {
-            throw new AppException(
-                    "Нельзя редактировать прошедшее мероприятие", HttpStatus.BAD_REQUEST);
+            throw new AppException("Нельзя редактировать прошедшее мероприятие", HttpStatus.BAD_REQUEST);
         }
 
         event.setEventName(req.getEventName());
@@ -118,33 +103,28 @@ public class OrganizerEventService {
         event.setPrice(req.getPrice());
         event.setMaxParticipants(req.getMaxParticipants());
         event.setImageUrl(req.getImageUrl());
-        event.setVerified(false); // снова требует проверки
+        event.setVerified(false);
 
         return toOrganizerDto(eventRepository.save(event));
     }
 
-    // ── Отменить мероприятие ──────────────────────────────────
-
+    //Отменить мероприятие
     @Transactional
     public void cancelEvent(Long eventId) throws AppException {
         Event event = getOwnEvent(eventId);
 
         if (event.getEventDate().isBefore(LocalDateTime.now())) {
-            throw new AppException(
-                    "Нельзя отменить прошедшее мероприятие", HttpStatus.BAD_REQUEST);
+            throw new AppException("Нельзя отменить прошедшее мероприятие", HttpStatus.BAD_REQUEST);
         }
 
-        EventStatus cancelled = eventStatusRepository
-                .findByEventStatusName("CANCELLED")
-                .orElseThrow(() -> new AppException(
-                        "Статус CANCELLED не найден в БД", HttpStatus.INTERNAL_SERVER_ERROR));
+        EventStatus cancelled = eventStatusRepository.findByEventStatusName("CANCELLED")
+                .orElseThrow(() -> new AppException("Статус CANCELLED не найден в БД", HttpStatus.INTERNAL_SERVER_ERROR));
 
         event.setEventStatus(cancelled);
         eventRepository.save(event);
     }
 
-    // ── Участники мероприятия ─────────────────────────────────
-
+    //Участники мероприятия
     @Transactional(readOnly = true)
     public List<ParticipantDto> getParticipants(Long eventId) throws AppException {
         getOwnEvent(eventId);
@@ -161,16 +141,13 @@ public class OrganizerEventService {
                 .toList();
     }
 
-    // ── Вспомогательные ──────────────────────────────────────
-
+    //Вспомогательные
     private Event getOwnEvent(Long eventId) throws AppException {
         User organizer = getCurrentOrganizer();
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new AppException(
-                        "Мероприятие не найдено", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Мероприятие не найдено", HttpStatus.NOT_FOUND));
         if (!event.getOrganizer().getIdUser().equals(organizer.getIdUser())) {
-            throw new AppException(
-                    "Нет доступа к этому мероприятию", HttpStatus.FORBIDDEN);
+            throw new AppException("Нет доступа к этому мероприятию", HttpStatus.FORBIDDEN);
         }
         return event;
     }
@@ -178,17 +155,14 @@ public class OrganizerEventService {
     private Place buildPlace(CreateEventRequest req) throws AppException {
         if ("ONLINE".equals(req.getPlaceType())) {
             OnlinePlace p = new OnlinePlace();
-            p.setPlaceName(req.getPlaceName() != null && !req.getPlaceName().isBlank()
-                    ? req.getPlaceName() : "Онлайн");
+            p.setPlaceName(req.getPlaceName() != null && !req.getPlaceName().isBlank() ? req.getPlaceName() : "Онлайн");
             p.setMeetingUrl(req.getMeetingUrl() != null ? req.getMeetingUrl() : "");
             p.setSpecialNotes(req.getSpecialNotes());
             p.setRecording(false);
             return placeRepository.save(p);
         } else {
             PhysicalPlace p = new PhysicalPlace();
-            // address уже содержит полный адрес, city убрали
-            p.setPlaceName(req.getPlaceName() != null && !req.getPlaceName().isBlank()
-                    ? req.getPlaceName() : "Офлайн");
+            p.setPlaceName(req.getPlaceName() != null && !req.getPlaceName().isBlank() ? req.getPlaceName() : "Офлайн");
             p.setAddress(req.getAddress() != null ? req.getAddress() : "");
             p.setDisabilityAccessible(
                     req.getDisabilityAccessible() != null && req.getDisabilityAccessible());
@@ -196,13 +170,26 @@ public class OrganizerEventService {
         }
     }
 
+    @Transactional
+    public void restoreEvent(Long eventId) throws AppException {
+        Event event = getOwnEvent(eventId);
+        if (event.getEventDate().isBefore(LocalDateTime.now())) {
+            throw new AppException("Нельзя возобновить прошедшее мероприятие", HttpStatus.BAD_REQUEST);
+        }
+        EventStatus planned = eventStatusRepository.findByEventStatusName("PLANNED")
+                .orElseThrow(() -> new AppException("Статус PLANNED не найден в БД", HttpStatus.INTERNAL_SERVER_ERROR));
+        event.setEventStatus(planned);
+        event.setVerified(false); // Уходит на модерацию
+        event.setVerificationComment(null);
+        eventRepository.save(event);
+    }
+
     private OrganizerEventDto toOrganizerDto(Event e) {
         Long count = participantRepository.countActiveParticipants(e.getIdEvent());
         boolean isOnline = (e.getPlace() instanceof OnlinePlace);
         String placeName = e.getPlace() != null ? e.getPlace().getPlaceName() : null;
         boolean future = e.getEventDate().isAfter(LocalDateTime.now());
-        String statusName = e.getEventStatus() != null
-                ? e.getEventStatus().getEventStatusName() : "";
+        String statusName = e.getEventStatus() != null ? e.getEventStatus().getEventStatusName() : "";
 
         return new OrganizerEventDto(
                 e.getIdEvent(),
@@ -215,8 +202,10 @@ public class OrganizerEventService {
                 e.getPrice(),
                 e.getMaxParticipants(),
                 count,
+                e.getEventCategory().getIdEventCategory(),
                 e.getEventCategory().getEventCategoryName(),
                 e.getEventCategory().getColorCode(),
+                e.getEventFormat().getIdEventFormat(),
                 e.getEventFormat().getEventFormatName(),
                 placeName,
                 isOnline,

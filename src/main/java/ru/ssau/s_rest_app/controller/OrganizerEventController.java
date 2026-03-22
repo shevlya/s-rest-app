@@ -3,7 +3,6 @@ package ru.ssau.s_rest_app.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.ssau.s_rest_app.dto.CreateEventRequest;
 import ru.ssau.s_rest_app.dto.OrganizerEventDto;
@@ -18,51 +17,44 @@ import java.util.List;
 @RequestMapping("/api/organizer/events")
 @RequiredArgsConstructor
 public class OrganizerEventController {
+
     private final OrganizerEventService organizerEventService;
 
-    /**
-     * GET /api/organizer/events — мои мероприятия
-     */
     @GetMapping
-    public ResponseEntity<List<OrganizerEventDto>> getMyEvents() throws AppException {
-        return ResponseEntity.ok(organizerEventService.getMyEvents());
+    public List<OrganizerEventDto> getMyEvents() throws AppException {
+        return organizerEventService.getMyEvents();
     }
 
-    /**
-     * POST /api/organizer/events — создать мероприятие
-     */
+    @GetMapping("/{id}")
+    public OrganizerEventDto getEvent(@PathVariable Long id) throws AppException {
+        return organizerEventService.getEventById(id);
+    }
+
     @PostMapping
-    public ResponseEntity<OrganizerEventDto> createEvent(
-            @Valid @RequestBody CreateEventRequest request) throws AppException {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(organizerEventService.createEvent(request));
+    @ResponseStatus(HttpStatus.CREATED)
+    public OrganizerEventDto createEvent(@Valid @RequestBody CreateEventRequest request) throws AppException {
+        return organizerEventService.createEvent(request);
     }
 
-    /**
-     * PUT /api/organizer/events/{id} — редактировать
-     */
     @PutMapping("/{id}")
-    public ResponseEntity<OrganizerEventDto> updateEvent(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateEventRequest request) throws AppException {
-        return ResponseEntity.ok(organizerEventService.updateEvent(id, request));
+    public OrganizerEventDto updateEvent(@PathVariable Long id, @Valid @RequestBody UpdateEventRequest request) throws AppException {
+        return organizerEventService.updateEvent(id, request);
     }
 
-    /**
-     * DELETE /api/organizer/events/{id} — отменить
-     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> cancelEvent(@PathVariable Long id) throws AppException {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelEvent(@PathVariable Long id) throws AppException {
         organizerEventService.cancelEvent(id);
-        return ResponseEntity.noContent().build();
     }
 
-    /**
-     * GET /api/organizer/events/{id}/participants — список участников
-     */
     @GetMapping("/{id}/participants")
-    public ResponseEntity<List<ParticipantDto>> getParticipants(
-            @PathVariable Long id) throws AppException {
-        return ResponseEntity.ok(organizerEventService.getParticipants(id));
+    public List<ParticipantDto> getParticipants(@PathVariable Long id) throws AppException {
+        return organizerEventService.getParticipants(id);
+    }
+
+    @PostMapping("/{id}/restore")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void restoreEvent(@PathVariable Long id) throws AppException {
+        organizerEventService.restoreEvent(id);
     }
 }
