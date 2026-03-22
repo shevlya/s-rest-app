@@ -13,36 +13,19 @@ import java.util.List;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-    @Query(
-            value = """
-                        SELECT DISTINCT e FROM Event e
-                        JOIN FETCH e.eventCategory
-                        JOIN FETCH e.eventFormat
-                        JOIN FETCH e.eventStatus
-                        JOIN FETCH e.organizer
-                        LEFT JOIN FETCH e.place
-                        WHERE e.verified = true
-                          AND e.eventStatus.eventStatusName = 'PLANNED'
-                          AND e.eventDate >= :today
-                          AND (:categoryId IS NULL OR e.eventCategory.idEventCategory = :categoryId)
-                          AND (:formatId   IS NULL OR e.eventFormat.idEventFormat     = :formatId)
-                          AND (:dateFrom   IS NULL OR e.eventDate >= :dateFrom)
-                          AND (:dateTo     IS NULL OR e.eventDate <= :dateTo)
-                        ORDER BY e.eventDate ASC, e.startTime ASC
-                    """,
-            countQuery = """
-                        SELECT COUNT(DISTINCT e) FROM Event e
-                        WHERE e.verified = true
-                          AND e.eventStatus.eventStatusName = 'PLANNED'
-                          AND e.eventDate >= :today
-                          AND (:categoryId IS NULL OR e.eventCategory.idEventCategory = :categoryId)
-                          AND (:formatId   IS NULL OR e.eventFormat.idEventFormat     = :formatId)
-                          AND (:dateFrom   IS NULL OR e.eventDate >= :dateFrom)
-                          AND (:dateTo     IS NULL OR e.eventDate <= :dateTo)
-                    """
-    )
+    @Query("""
+                SELECT e FROM Event e
+                WHERE e.verified = true
+                  AND e.eventStatus.eventStatusName = 'PLANNED'
+                  AND e.startTime > :now
+                  AND e.eventCategory.idEventCategory = coalesce(:categoryId, e.eventCategory.idEventCategory)
+                  AND e.eventFormat.idEventFormat = coalesce(:formatId, e.eventFormat.idEventFormat)
+                  AND e.eventDate >= coalesce(:dateFrom, e.eventDate)
+                  AND e.eventDate <= coalesce(:dateTo, e.eventDate)
+                ORDER BY e.eventDate ASC, e.startTime ASC
+            """)
     Page<Event> findPublicEvents(
-            @Param("today") LocalDateTime today,
+            @Param("now") LocalDateTime now,
             @Param("categoryId") Long categoryId,
             @Param("formatId") Long formatId,
             @Param("dateFrom") LocalDateTime dateFrom,
