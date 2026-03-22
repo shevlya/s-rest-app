@@ -57,6 +57,7 @@ public class UserService {
                     return new EventCategoryDto(
                             c.getIdEventCategory(),
                             c.getEventCategoryName(),
+                            c.getEventCategoryDescription(),
                             c.getColorCode());
                 })
                 .toList();

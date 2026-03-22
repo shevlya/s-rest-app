@@ -233,7 +233,7 @@ public class AdminService {
     public List<EventCategoryDto> getAllCategories() {
         return categoryRepository.findAll().stream()
                 .map(c -> new EventCategoryDto(c.getIdEventCategory(),
-                        c.getEventCategoryName(), c.getColorCode()))
+                        c.getEventCategoryName(), c.getEventCategoryDescription(), c.getColorCode()))
                 .toList();
     }
 
@@ -245,7 +245,7 @@ public class AdminService {
         c.setColorCode(req.getColorCode());
         EventCategory saved = categoryRepository.save(c);
         return new EventCategoryDto(saved.getIdEventCategory(),
-                saved.getEventCategoryName(), saved.getColorCode());
+                saved.getEventCategoryName(), c.getEventCategoryDescription(), saved.getColorCode());
     }
 
     @Transactional
@@ -256,7 +256,7 @@ public class AdminService {
         c.setColorCode(req.getColorCode());
         categoryRepository.save(c);
         return new EventCategoryDto(c.getIdEventCategory(),
-                c.getEventCategoryName(), c.getColorCode());
+                c.getEventCategoryName(), c.getEventCategoryDescription(), c.getColorCode());
     }
 
     @Transactional

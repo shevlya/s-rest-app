@@ -8,5 +8,6 @@ import lombok.Data;
 public class EventCategoryDto {
     private Long id;
     private String name;
+    private String description;
     private String colorCode;
 }

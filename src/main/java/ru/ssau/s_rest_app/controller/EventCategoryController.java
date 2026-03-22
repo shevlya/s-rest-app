@@ -22,6 +22,7 @@ public class EventCategoryController {
                 .map(c -> new EventCategoryDto(
                         c.getIdEventCategory(),
                         c.getEventCategoryName(),
+                        c.getEventCategoryDescription(),
                         c.getColorCode()))
                 .toList();
     }
