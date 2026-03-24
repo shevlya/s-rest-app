@@ -203,9 +203,9 @@ ru.ssau.s_rest_app/
 ## Известные особенности и важные решения
 
 - **`findPublicEvents` использует `JOIN FETCH`** — обязательно из-за LAZY-загрузки. Без него падает `LazyInitializationException` при обходе коллекции вне транзакции.
-- **Статус мероприятия при создании** — `PLANNED` (не `ACTIVE` — такого статуса нет в БД).
+- **Статус мероприятия при создании** — `PLANNED`.
 - **Фильтр по дате** — `eventDate >= :now` (начало дня), а не `startTime > :now`, чтобы мероприятия текущего дня отображались.
-- **`AppException extends Exception`** (не RuntimeException) — требование преподавателя.
+- **`AppException extends Exception`**.
 - **`EmailService`** оборачивает отправку в try-catch — ошибки почты не ломают бизнес-логику.
 - **`UserRepository.findForAdmin`** использует `nativeQuery = true` для надёжной работы с NULL-параметрами.
 - **`Place`** использует `InheritanceType.JOINED` — `PhysicalPlace` и `OnlinePlace` — отдельные таблицы.

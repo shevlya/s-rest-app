@@ -58,39 +58,30 @@ public class AdminController {
 
     @PostMapping("/organizer-requests/{id}/reject")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void rejectRequest(
-            @PathVariable Long id,
-            @RequestBody AdminModerationRequest req) throws AppException {
+    public void rejectRequest(@PathVariable Long id, @RequestBody AdminModerationRequest req) throws AppException {
         adminService.rejectOrganizerRequest(id, req);
     }
 
     //Модерация мероприятий
     @GetMapping("/events")
-    public List<AdminEventDto> getEvents(
-            @RequestParam(defaultValue = "PENDING") String tab) {
+    public List<AdminEventDto> getEvents(@RequestParam(defaultValue = "PENDING") String tab) {
         return adminService.getEventsByTab(tab);
     }
 
     @PostMapping("/events/{id}/approve")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void approveEvent(
-            @PathVariable Long id,
-            @RequestBody AdminModerationRequest req) throws AppException {
+    public void approveEvent(@PathVariable Long id, @RequestBody AdminModerationRequest req) throws AppException {
         adminService.approveEvent(id, req);
     }
 
     @PostMapping("/events/{id}/reject")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void rejectEvent(
-            @PathVariable Long id,
-            @RequestBody AdminModerationRequest req) throws AppException {
+    public void rejectEvent(@PathVariable Long id, @RequestBody AdminModerationRequest req) throws AppException {
         adminService.rejectEvent(id, req);
     }
 
     @PutMapping("/events/{id}")
-    public AdminEventDto editEvent(
-            @PathVariable Long id,
-            @Valid @RequestBody AdminEditEventRequest req) throws AppException {
+    public AdminEventDto editEvent(@PathVariable Long id, @Valid @RequestBody AdminEditEventRequest req) throws AppException {
         return adminService.editEvent(id, req);
     }
 
@@ -102,9 +93,7 @@ public class AdminController {
 
     @PatchMapping("/events/{id}/status")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void changeEventStatus(
-            @PathVariable Long id,
-            @RequestBody ChangeEventStatusRequest req) throws AppException {
+    public void changeEventStatus(@PathVariable Long id, @RequestBody ChangeEventStatusRequest req) throws AppException {
         adminService.changeEventStatus(id, req);
     }
 
