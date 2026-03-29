@@ -17,32 +17,32 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EventFormatController {
 
-    private final EventFormatService service;
+    private final EventFormatService eventFormatService;
 
     @GetMapping
     public List<EventFormatResponseDto> getAll() {
-        return service.getAll();
+        return eventFormatService.getAll();
     }
 
     @GetMapping("/{id}")
     public EventFormatResponseDto getById(@PathVariable Long id) throws EntityNotFoundException {
-        return service.getById(id);
+        return eventFormatService.getById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EventFormatResponseDto create(@Valid @RequestBody EventFormatRequestDto dto) throws DuplicateEntityException {
-        return service.create(dto);
+        return eventFormatService.create(dto);
     }
 
     @PutMapping("/{id}")
     public EventFormatResponseDto update(@PathVariable Long id, @Valid @RequestBody EventFormatRequestDto dto) throws DuplicateEntityException, EntityNotFoundException {
-        return service.update(id, dto);
+        return eventFormatService.update(id, dto);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) throws EntityNotFoundException {
-        service.delete(id);
+        eventFormatService.delete(id);
     }
 }

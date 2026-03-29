@@ -17,12 +17,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EventCategoryService {
 
-    private final EventCategoryRepository repository;
+    private final EventCategoryRepository eventCategoryRepository;
 
     //Получить все
     @Transactional(readOnly = true)
     public List<EventCategoryResponseDto> getAll() {
-        return repository.findAll()
+        return eventCategoryRepository.findAll()
                 .stream()
                 .map(this::toDto)
                 .toList();
@@ -37,7 +37,7 @@ public class EventCategoryService {
     //Создать
     @Transactional
     public EventCategoryResponseDto create(EventCategoryRequestDto dto) throws DuplicateEntityException {
-        if (repository.existsByEventCategoryName(dto.getEventCategoryName())) {
+        if (eventCategoryRepository.existsByEventCategoryName(dto.getEventCategoryName())) {
             throw new DuplicateEntityException("Категория с названием «" + dto.getEventCategoryName() + "» уже существует"
             );
         }
@@ -45,7 +45,7 @@ public class EventCategoryService {
         entity.setEventCategoryName(dto.getEventCategoryName());
         entity.setEventCategoryDescription(dto.getEventCategoryDescription());
         entity.setColorCode(dto.getColorCode());
-        return toDto(repository.save(entity));
+        return toDto(eventCategoryRepository.save(entity));
     }
 
     //Обновить
@@ -54,26 +54,26 @@ public class EventCategoryService {
         EventCategory entity = findOrThrow(id);
         // Проверяем уникальность только если имя изменилось
         boolean nameChanged = !entity.getEventCategoryName().equalsIgnoreCase(dto.getEventCategoryName());
-        if (nameChanged && repository.existsByEventCategoryName(dto.getEventCategoryName())) {
+        if (nameChanged && eventCategoryRepository.existsByEventCategoryName(dto.getEventCategoryName())) {
             throw new DuplicateEntityException("Категория с названием «" + dto.getEventCategoryName() + "» уже существует"
             );
         }
         entity.setEventCategoryName(dto.getEventCategoryName());
         entity.setEventCategoryDescription(dto.getEventCategoryDescription());
         entity.setColorCode(dto.getColorCode());
-        return toDto(repository.save(entity));
+        return toDto(eventCategoryRepository.save(entity));
     }
 
     //Удалить
     @Transactional
     public void delete(Long id) throws EntityNotFoundException {
         findOrThrow(id); // убедимся что существует
-        repository.deleteById(id);
+        eventCategoryRepository.deleteById(id);
     }
 
     //Вспомогательные
     private EventCategory findOrThrow(Long id) throws EntityNotFoundException {
-        return repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Категория с id=" + id + " не найдена"));
+        return eventCategoryRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Категория с id=" + id + " не найдена"));
     }
 
     private EventCategoryResponseDto toDto(EventCategory e) {
