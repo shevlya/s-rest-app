@@ -1,0 +1,84 @@
+### Получить все категории
+GET {{base_url}}/api/categories
+Authorization: Basic user {{auth_token}}
+Accept: application/json
+
+### Создать категорию — Спорт
+POST {{base_url}}/api/categories
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventCategoryName": "Спорт",
+  "eventCategoryDescription": "Спортивные мероприятия и турниры",
+  "colorCode": "#4CAF50"
+}
+
+### Создать категорию — Культура
+POST {{base_url}}/api/categories
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventCategoryName": "Культура",
+  "eventCategoryDescription": "Театры, выставки, концерты",
+  "colorCode": "#9C27B0"
+}
+
+### Создать категорию без цвета
+POST {{base_url}}/api/categories
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventCategoryName": "Музыка",
+  "eventCategoryDescription": "Лекции, воркшопы, курсы"
+}
+
+### Получить категорию по id
+@category_id = 7
+GET {{base_url}}/api/categories/{{category_id}}
+Authorization: Basic user {{auth_token}}
+Accept: application/json
+
+### Обновить категорию
+PUT {{base_url}}/api/categories/{{category_id}}
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventCategoryName": "Музыка",
+  "eventCategoryDescription": "Лекции, курсы",
+  "colorCode": "#2E7D32"
+}
+
+### Удалить категорию
+DELETE {{base_url}}/api/categories/{{category_id}}
+Authorization: Basic user {{auth_token}}
+
+### Попытка создать дубликат — ожидаем 409
+# @expect-status 409
+POST {{base_url}}/api/categories
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventCategoryName": "Спорт"
+}
+
+### Получить несуществующую категорию — ожидаем 404
+# @expect-status 404
+GET {{base_url}}/api/categories/999
+Authorization: Basic user {{auth_token}}
+Accept: application/json
+
+### Передать невалидные данные — ожидаем 400
+# @expect-status 400
+POST {{base_url}}/api/categories
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventCategoryName": "",
+  "colorCode": "зелёный"
+}

@@ -1,0 +1,84 @@
+### Получить все форматы
+GET {{base_url}}/api/formats
+Authorization: Basic user {{auth_token}}
+Accept: application/json
+
+### Получить формат по id — ONLINE
+GET {{base_url}}/api/formats/1
+Authorization: Basic user {{auth_token}}
+Accept: application/json
+
+### Получить формат по id — OFFLINE
+GET {{base_url}}/api/formats/2
+Authorization: Basic user {{auth_token}}
+Accept: application/json
+
+### Создать новый формат
+POST {{base_url}}/api/formats
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventFormatName": "RECORDED",
+  "eventFormatDescription": "Записанное мероприятие — доступно в любое время"
+}
+
+### Обновить формат — HYBRID
+PUT {{base_url}}/api/formats/1
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventFormatName": "HYBRID",
+  "eventFormatDescription": "Смешанный формат: часть участников онлайн, часть очно"
+}
+
+### Обновить имя формата
+PUT {{base_url}}/api/formats/5
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventFormatName": "ON_DEMAND",
+  "eventFormatDescription": "Запись по запросу"
+}
+
+### Удалить созданный формат
+DELETE {{base_url}}/api/formats/6
+Authorization: Basic user {{auth_token}}
+
+### Попытка создать дубликат — ожидаем 409
+# @expect-status 409
+POST {{base_url}}/api/formats
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventFormatName": "ONLINE"
+}
+
+### Получить несуществующий формат — ожидаем 404
+# @expect-status 404
+GET {{base_url}}/api/formats/4
+Authorization: Basic user {{auth_token}}
+Accept: application/json
+
+### Передать пустое название — ожидаем 400
+# @expect-status 400
+POST {{base_url}}/api/formats
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventFormatName": ""
+}
+
+### Превысить длину названия — ожидаем 400
+# @expect-status 400
+POST {{base_url}}/api/formats
+Content-Type: application/json
+Authorization: Basic user {{auth_token}}
+
+{
+  "eventFormatName": "ОЧЕНЬ_ДЛИННОЕ_НАЗВАНИЕ_ФОРМАТА_КОТОРОЕ_ПРЕВЫШАЕТ_ЛИМИТ"
+}

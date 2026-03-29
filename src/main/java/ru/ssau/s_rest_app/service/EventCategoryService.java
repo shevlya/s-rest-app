@@ -52,7 +52,6 @@ public class EventCategoryService {
     @Transactional
     public EventCategoryResponseDto update(Long id, EventCategoryRequestDto dto) throws DuplicateEntityException, EntityNotFoundException {
         EventCategory entity = findOrThrow(id);
-
         // Проверяем уникальность только если имя изменилось
         boolean nameChanged = !entity.getEventCategoryName().equalsIgnoreCase(dto.getEventCategoryName());
         if (nameChanged && repository.existsByEventCategoryName(dto.getEventCategoryName())) {
