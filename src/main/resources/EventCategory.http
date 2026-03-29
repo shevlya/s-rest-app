@@ -1,0 +1,67 @@
+### Получить все категории (пустой список при первом запуске)
+GET http://localhost:8080/api/categories
+
+### Создать категорию — Спорт
+POST http://localhost:8080/api/categories
+Content-Type: application/json
+
+{
+  "eventCategoryName": "Спорт",
+  "eventCategoryDescription": "Спортивные мероприятия и турниры",
+  "colorCode": "#4CAF50"
+}
+
+### Создать категорию — Культура
+POST http://localhost:8080/api/categories
+Content-Type: application/json
+
+{
+  "eventCategoryName": "Культура",
+  "eventCategoryDescription": "Театры, выставки, концерты",
+  "colorCode": "#9C27B0"
+}
+
+### Создать категорию без цвета (поле необязательное)
+POST http://localhost:8080/api/categories
+Content-Type: application/json
+
+{
+  "eventCategoryName": "Образование",
+  "eventCategoryDescription": "Лекции, воркшопы, курсы"
+}
+
+### Получить категорию по id
+GET http://localhost:8080/api/categories/1
+
+### Обновить категорию
+PUT http://localhost:8080/api/categories/1
+Content-Type: application/json
+
+{
+  "eventCategoryName": "Спорт и фитнес",
+  "eventCategoryDescription": "Спортивные мероприятия, турниры и фитнес-активности",
+  "colorCode": "#2E7D32"
+}
+
+### Удалить категорию
+DELETE http://localhost:8080/api/categories/3
+
+### Попытка создать дубликат — ожидаем 409 Conflict
+POST http://localhost:8080/api/categories
+Content-Type: application/json
+
+{
+  "eventCategoryName": "Спорт и фитнес"
+}
+
+### Получить несуществующую категорию — ожидаем 404 Not Found
+GET http://localhost:8080/api/categories/999
+
+### Передать невалидные данные — ожидаем 400 Bad Request
+POST http://localhost:8080/api/categories
+Content-Type: application/json
+
+{
+  "eventCategoryName": "",
+  "colorCode": "зелёный"
+}
